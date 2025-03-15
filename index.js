@@ -280,9 +280,32 @@ async function run() {
     })
 
     app.get("/order-stats", async (req, res) => {
-      const result = await paymentCollections.aggregate([
-        
-      ]).toArray();
+      const result = await paymentCollections
+        .aggregate([
+          {
+            $unwind: "$menuItemIds",
+          },
+          {
+            $lookup: {
+              from: "menu",
+              localField: "menuItemIds",
+              foreignField: "_id",
+              as: "menuItems",
+            },
+          },
+          {
+            $unwind: "$menuItems",
+          },
+          {
+            $group: {
+              _id: "$menuItems.category",
+              quantity: { $sum: 1 },
+              revenue: { $sum: "$menuItems.price" },
+            },
+          },
+        ])
+        .toArray();
+        console.log(result);
 
       res.send(result);
     })
